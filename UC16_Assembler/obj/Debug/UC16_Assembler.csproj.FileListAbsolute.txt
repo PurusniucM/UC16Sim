@@ -1,0 +1,10 @@
+D:\Faculta C\AnIII_semI\Simulator_UC16\UC16_Assembler\UC16_Assembler\bin\Debug\UC16_Assembler.exe.config
+D:\Faculta C\AnIII_semI\Simulator_UC16\UC16_Assembler\UC16_Assembler\bin\Debug\UC16_Assembler.exe
+D:\Faculta C\AnIII_semI\Simulator_UC16\UC16_Assembler\UC16_Assembler\bin\Debug\UC16_Assembler.pdb
+D:\Faculta C\AnIII_semI\Simulator_UC16\UC16_Assembler\UC16_Assembler\obj\Debug\UC16_Assembler.Form3.resources
+D:\Faculta C\AnIII_semI\Simulator_UC16\UC16_Assembler\UC16_Assembler\obj\Debug\UC16_Assembler.Properties.Resources.resources
+D:\Faculta C\AnIII_semI\Simulator_UC16\UC16_Assembler\UC16_Assembler\obj\Debug\UC16_Assembler.csproj.GenerateResource.Cache
+D:\Faculta C\AnIII_semI\Simulator_UC16\UC16_Assembler\UC16_Assembler\obj\Debug\UC16_Assembler.exe
+D:\Faculta C\AnIII_semI\Simulator_UC16\UC16_Assembler\UC16_Assembler\obj\Debug\UC16_Assembler.pdb
+D:\Faculta C\AnIII_semI\Simulator_UC16\UC16_Assembler\UC16_Assembler\obj\Debug\UC16_Assembler.csprojResolveAssemblyReference.cache
+D:\Faculta C\AnIII_semI\Simulator_UC16\UC16_Assembler\UC16_Assembler\obj\Debug\UC16_Assembler.HelpFRM.resources
