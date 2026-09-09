@@ -46,6 +46,16 @@ namespace UC16_Assembler
              else return "eroare citire offset\n";
          }
 
+        //converts the decimal "valoare" literal to a single 4-bit two's-complement hex
+        //digit (range -8..7), so negative immediates (e.g. right-shift amounts) encode
+        //correctly instead of being embedded as raw decimal text
+        private string ValoareHexNibble()
+        {
+            int n = Convert.ToInt32(valoare);
+            int nibble = n & 0xF;
+            return nibble.ToString("X");
+        }
+
         public string tratez_instructiune()
         {
             string retVal = "";
@@ -64,15 +74,15 @@ namespace UC16_Assembler
                     retVal = opCode + regRez + regOp1 + regOp2;
                     break;
                 case "4":
-                    retVal = opCode + regRez + regOp1 + valoare;
+                    retVal = opCode + regRez + regOp1 + ValoareHexNibble();
                     break;
                 case "5":
-                    retVal = opCode + regRez + regOp1 + valoare;
+                    retVal = opCode + regRez + regOp1 + ValoareHexNibble();
                     break;
                 case "6":
                     return "FFFF";
                 case "7":
-                    retVal = opCode + regRez + regOp1 + regOp2;
+                    retVal = opCode + regRez + regOp1 + (string.IsNullOrEmpty(valoare) ? regOp2 : ValoareHexNibble());
                     break;
                 case "8":
                     retVal = opCode + regRez + regOp1 + regOp2;
@@ -130,9 +140,24 @@ namespace UC16_Assembler
             }
             return retVal;
         }
-        public void tratez_eticheta(string _codHexa)
+        //records the flat InstructiuniHex address of the current line, keyed by its
+        //label name, so tratez_eticheta_dest() can resolve branch targets by name
+        //(previously this stored {instructionHexWord: labelName}, the reverse of what
+        //label lookups need, so no branch target ever resolved)
+        public void tratez_eticheta(int address)
         {
-            etichete_adrese.Add(_codHexa, eticheta);
+            //label definitions keep their trailing ':' (e.g. "loop:") but branch targets
+            //never do (e.g. "bri loop"), so the key must be normalized here or every
+            //lookup in tratez_eticheta_dest() would miss
+            etichete_adrese[eticheta.TrimEnd(':')] = address.ToString("X4");
+        }
+        //clears the encoded-output lists but keeps etichete_adrese, so a first
+        //"label pre-scan" assemble pass can be discarded and re-run for real once every
+        //label's address is known (forward branch references need this)
+        public void ResetOutput()
+        {
+            InstructiuniHex = new List<string>();
+            Tip = new List<int>();
         }
         public void reset_membri()
         {
@@ -168,31 +193,28 @@ namespace UC16_Assembler
                      Tip.Add(tip);
                      break;
                  case 6:
-                     string codHexa = "";
-                     codHexa = tratez_instructiune();
-                     InstructiuniHex.Add(codHexa);
+                     int addr6 = InstructiuniHex.Count;
+                     InstructiuniHex.Add(tratez_instructiune());
                      InstructiuniHex.Add(tratez_eticheta_dest());
-                     tratez_eticheta(codHexa);
+                     tratez_eticheta(addr6);
                      break;
                  case 7:
                      InstructiuniHex.Add(tratez_instructiune());
                      InstructiuniHex.Add(tratez_offset(offset));
                      break;
                  case 8:
-                     string codHexa2 = "";
-                     codHexa2 = tratez_instructiune();
-                     InstructiuniHex.Add(codHexa2);
+                     int addr8 = InstructiuniHex.Count;
+                     InstructiuniHex.Add(tratez_instructiune());
                      InstructiuniHex.Add(tratez_offset(offset));
-                     tratez_eticheta(codHexa2);
+                     tratez_eticheta(addr8);
                      break;
                  case 9:
                      InstructiuniHex.Add(tratez_instructiune());
                      break;
                  case 10:
-                     string codHexa3 = "";
-                     codHexa3 = tratez_instructiune();
-                     InstructiuniHex.Add(codHexa3);
-                     tratez_eticheta(codHexa3);
+                     int addr10 = InstructiuniHex.Count;
+                     InstructiuniHex.Add(tratez_instructiune());
+                     tratez_eticheta(addr10);
                      break;
                  default:
                      break;
