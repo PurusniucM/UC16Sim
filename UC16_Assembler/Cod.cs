@@ -117,6 +117,22 @@ namespace UC16_Assembler
             }
         }
         #endregion
+        //re-arms this line for a second procesatInstruct() pass (used for the label
+        //pre-scan pass in Form1's assemble step, so forward branch references can
+        //resolve against labels defined later in the file)
+        public void ResetState()
+        {
+            eticheta     = "";
+            opCode       = "";
+            regRez       = "";
+            regOp1       = "";
+            regOp2       = "";
+            offset       = "";
+            etichetaDest = "";
+            valoare      = "";
+            tip          = 0;
+            mesajErr     = new List<string>();
+        }
         #region Metode
         public bool caracterPermis(char inputData)
         {
@@ -176,7 +192,7 @@ namespace UC16_Assembler
         public bool esteReg(string sir)                 //extrag numarul registrului
         {
             bool ret_Val = false;
-            if (sir[0] =='r')
+            if (sir.Length >= 2 && sir[0] =='r')
             {
                 if (sir.Length==3)
                 {
@@ -225,7 +241,7 @@ namespace UC16_Assembler
         public bool esteInt(string sir)
         {
             bool ret_Val = false;
-            sir.TrimEnd(',');
+            sir = sir.TrimEnd(',');
             int valoare;
             if (Int32.TryParse(sir,out valoare))
             {
@@ -260,11 +276,13 @@ namespace UC16_Assembler
             return ret_Val;
         }
 
+        //validates that "sir" is syntactically usable as a branch-target label reference
+        //(the original _eticheta comparison never matched anything real; kept the
+        //parameter for call-site compatibility)
         public bool esteEtichetaDest(string sir, string _eticheta)
         {
             bool ret_Val = false;
-            _eticheta.TrimEnd(':');
-            if (sir == _eticheta)
+            if (sir.Length > 0 && caracterPermis(sir[0]))
             {
                 ret_Val = true;
             }

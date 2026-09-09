@@ -296,26 +296,37 @@ namespace UC16_Assembler
                 reg.ForeColor = Color.Red;
             }
         }
+        //tipSalt is the branch instruction's condition nibble (matches InstrHex.cs's
+        //bri/brv/brn/brz = 8/4/2/1 encoding): 1=zero, 2=negative, 4=overflow, 8=always.
+        //bii/biv/bin/biz (opcode 'F') share the same condition nibble and are treated
+        //identically here, since nothing elsewhere in the project distinguishes their
+        //execution semantics from the 'E'-group branches.
         public void salt(int tipSalt)
         {
-            if (tipSalt == 1)
-            {
-                if (Flags[2].Text=="1")
-                {
-                    program_counter.Text = CodHexa.InstructiuneHex(++LineCount);
-                }
-            }
-            else if (tipSalt == 2)
-            {
+            bool taken = false;
+            if (tipSalt == 1) { taken = (Flags[2].Text == "1"); }        //zero
+            else if (tipSalt == 2) { taken = (Flags[1].Text == "1"); }   //negative
+            else if (tipSalt == 4) { taken = (Flags[0].Text == "1"); }   //overflow
+            else if (tipSalt == 8) { taken = true; }                     //always
 
-            }
-            else if (tipSalt == 4)
+            if (taken)
             {
-
+                string targetAddr = CodHexa.InstructiuneHex(LineCount + 1);
+                LineCount = Convert.ToInt32(targetAddr, 16);
             }
-            else if (tipSalt == 8)
+            else
             {
+                LineCount += 2;
+            }
 
+            if (CodHexa.InstructiuneHex(LineCount) != null)
+            {
+                program_counter.Text = CodHexa.InstructiuneHex(LineCount);
+            }
+            else
+            {
+                stripBtnRun.Enabled = false;
+                rtbError.AppendText("Fisier compilat cu succes!");
             }
         }
         public void executa_instructiune(string instructiune)
@@ -380,6 +391,11 @@ namespace UC16_Assembler
                     }
                     break;
                 case '3':
+                    if (Convert.ToInt32(registri[v[3]].Text, 16) == 0)
+                    {
+                        rtbError.AppendText("Eroare: impartire la zero!\n");
+                        break;
+                    }
                     rezTemp = ((Convert.ToInt32(registri[v[2]].Text, 16)) / (Convert.ToInt32(registri[v[3]].Text, 16)));
                     sirTemp = rezTemp.ToString("X");
                     setFlags(rezTemp, sirTemp, registri[v[1]]);
@@ -408,7 +424,7 @@ namespace UC16_Assembler
                     }
                     break;
                 case '5':
-                    rezTemp = ((Convert.ToInt32(registri[v[2]].Text, 16)) + v[3]);
+                    rezTemp = ((Convert.ToInt32(registri[v[2]].Text, 16)) - v[3]);
                     sirTemp = rezTemp.ToString("X");
                     setFlags(rezTemp, sirTemp, registri[v[1]]);
                     if ((CodHexa.InstructiuneHex(++LineCount)) != null)
@@ -422,15 +438,13 @@ namespace UC16_Assembler
                     }
                     break;
                 case '6':
+                    rtbError.AppendText("Instructiunea 'rti' nu este implementata.\n");
                     break;
                 case '7':
-                    if (v[3]==0)
                     {
-                        rezTemp = ((Convert.ToInt32(registri[v[2]].Text, 16)) * Convert.ToInt32(Math.Pow(2, (Convert.ToInt32(registri[v[3]].Text, 16)))));
-                    }
-                    else
-                    {
-                        rezTemp = ((Convert.ToInt32(registri[v[2]].Text, 16)) / Convert.ToInt32(Math.Pow(2, (Convert.ToInt32(registri[v[3]].Text, 16)))));
+                        int baseVal = Convert.ToInt32(registri[v[2]].Text, 16);
+                        int shiftAmt = (v[3] <= 7) ? v[3] : v[3] - 16;   //4-bit two's complement: positive = left, negative = right
+                        rezTemp = (shiftAmt >= 0) ? (baseVal << shiftAmt) : (baseVal >> (-shiftAmt));
                     }
                     sirTemp = rezTemp.ToString("X");
                     setFlags(rezTemp, sirTemp, registri[v[1]]);
@@ -487,12 +501,14 @@ namespace UC16_Assembler
                     }
                     break;
                 case 'B':
+                    rtbError.AppendText("Instructiunea 'msk' nu este implementata.\n");
                     break;
                 case 'C':
                     string instructiune2 = LinieCod[++LineCount].Offset;
                     int[] v2 = new int[instructiune2.Length];
                     string memLocIndex = instructiune2[2].ToString() + instructiune2[3];
-                    int indexConvert = (Convert.ToInt32(memLocIndex, 16)) / 2;
+                    int baseRegC = Convert.ToInt32(registri[v[2]].Text, 16);
+                    int indexConvert = (((Convert.ToInt32(memLocIndex, 16)) / 2) + baseRegC) % 16;
                     for (int i = 0; i < instructiune2.Length; i++)
                     {
                         v2[i] = Convert.ToInt32(instructiune2[i].ToString(), 16);
@@ -500,15 +516,15 @@ namespace UC16_Assembler
 
                     if (v2[1] == 0)
                     {
-                        rezTemp = ((Convert.ToInt32(registri[v[2]].Text, 16)) + (Convert.ToInt32(memorieC1[indexConvert].Text, 16)));
+                        rezTemp = Convert.ToInt32(memorieC1[indexConvert].Text, 16);
                     }
                     else if (v2[1] == 4)
                     {
-                        rezTemp = ((Convert.ToInt32(registri[v[2]].Text, 16)) + (Convert.ToInt32(memorieC2[indexConvert].Text, 16)));
+                        rezTemp = Convert.ToInt32(memorieC2[indexConvert].Text, 16);
                     }
                     else if (v2[1] == 8)
                     {
-                        rezTemp = ((Convert.ToInt32(registri[v[2]].Text, 16)) + (Convert.ToInt32(memorieC3[indexConvert].Text, 16)));
+                        rezTemp = Convert.ToInt32(memorieC3[indexConvert].Text, 16);
                     }
                     sirTemp = rezTemp.ToString("X");
                     setFlags(rezTemp, sirTemp, registri[v[1]]);
@@ -526,23 +542,25 @@ namespace UC16_Assembler
                     string instructiune3 = LinieCod[++LineCount].Offset;
                     int[] v3 = new int[instructiune3.Length];
                     string memLocIndex2 = instructiune3[2].ToString() + instructiune3[3];
+                    int baseRegD = Convert.ToInt32(registri[v[2]].Text, 16);
+                    int indexConvert2 = (((Convert.ToInt32(memLocIndex2, 16)) / 2) + baseRegD) % 16;
                     for (int i = 0; i < instructiune3.Length; i++)
                     {
                         v3[i] = Convert.ToInt32(instructiune3[i].ToString(), 16);
                     }
-                    rezTemp = Convert.ToInt32(registri[v[1]].Text, 16) + Convert.ToInt32(registri[v[2]].Text, 16);
+                    rezTemp = Convert.ToInt32(registri[v[1]].Text, 16);
                     sirTemp = rezTemp.ToString("X");
                     if (v3[1] == 0)
                     {
-                        setFlags(rezTemp, sirTemp, memorieC1[(Convert.ToInt32(memLocIndex2, 16)) / 2]);
+                        setFlags(rezTemp, sirTemp, memorieC1[indexConvert2]);
                     }
                     else if (v3[1] == 4)
                     {
-                        setFlags(rezTemp, sirTemp, memorieC2[(Convert.ToInt32(memLocIndex2, 16)) / 2]);
+                        setFlags(rezTemp, sirTemp, memorieC2[indexConvert2]);
                     }
                     else if (v3[1] == 8)
                     {
-                        setFlags(rezTemp, sirTemp, memorieC3[(Convert.ToInt32(memLocIndex2, 16)) / 2]);
+                        setFlags(rezTemp, sirTemp, memorieC3[indexConvert2]);
                     }
                     if ((CodHexa.InstructiuneHex(++LineCount)) != null)
                     {
@@ -555,8 +573,8 @@ namespace UC16_Assembler
                     }
                     break;
                 case 'E':
-                    break;
                 case 'F':
+                    salt(v[1]);
                     break;
                 default:
                     break;
@@ -673,6 +691,25 @@ namespace UC16_Assembler
             deselect_tot(rtbContinut);
             decolorez_text(rtbError);
             decolorez_text(rtbContinut);
+
+            //pass 1: label pre-scan (just populates CodHexa's label->address table) so a
+            //branch to a label defined further down the file can still resolve on pass 2
+            for (int i = 0; i < LinieCod.Length; i++)
+            {
+                if (i + 1 < LinieCod.Length)
+                {
+                    LinieCod[i].procesatInstruct(LinieCod[(i + 1)]);
+                }
+                else
+                {
+                    LinieCod[i].procesatInstruct(LinieCod[i]);
+                }
+                CodHexa.Adauga_linie(LinieCod[i]);
+                LinieCod[i].ResetState();
+            }
+            CodHexa.ResetOutput();
+
+            //pass 2: the real assemble pass
             for (int i = 0; i < LinieCod.Length; i++)
             {
                 if (i+1 < LinieCod.Length)
@@ -683,7 +720,7 @@ namespace UC16_Assembler
                 {
                     LinieCod[i].procesatInstruct(LinieCod[i]);
                 }
-                
+
                 afiseaza_erori(LinieCod[i].Erori, i);
                 CodHexa.Adauga_linie(LinieCod[i]);
             }

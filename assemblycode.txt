@@ -1,0 +1,12 @@
+adi r1, r1, 5
+adi r2, r2, 3
+ad r3, r1, r2
+sb r4, r3, r2
+sbi r5, r1, 2
+and r6, r1, r2
+or r7, r1, r2
+xor r8, r1, r2
+st r3, r0
+DM[0x0000]
+ld r9, r0
+DM[0x0000]
